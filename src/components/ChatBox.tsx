@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Phone, Info } from 'lucide-react';
+import { MessageSquare, Phone, Info } from 'lucide-react';
+
+import ChatMessage from './chat/ChatMessage';
+import ChatInput from './chat/ChatInput';
+import { supportResponses } from './chat/SupportResponses';
 
 interface Message {
   id: number;
@@ -25,11 +26,12 @@ const ChatBoxComponent = () => {
       timestamp: new Date(),
     }
   ]);
-  const [inputMessage, setInputMessage] = useState('');
   
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
-    
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleSendMessage = (inputMessage: string) => {
     const userMessage: Message = {
       id: messages.length + 1,
       text: inputMessage,
@@ -38,17 +40,8 @@ const ChatBoxComponent = () => {
     };
     
     setMessages([...messages, userMessage]);
-    setInputMessage('');
     
     setTimeout(() => {
-      const supportResponses = [
-        "I understand your concern. Let me help you with that.",
-        "Thank you for sharing. You're not alone, and we're here to support you.",
-        "I'm here to listen and help. What else can you tell me about the situation?",
-        "Your safety is our priority. Have you considered these immediate steps?",
-        "We can connect you with local resources if you'd like. Would that be helpful?"
-      ];
-      
       const randomResponse = supportResponses[Math.floor(Math.random() * supportResponses.length)];
       
       const supportMessage: Message = {
@@ -60,10 +53,6 @@ const ChatBoxComponent = () => {
       
       setMessages(prevMessages => [...prevMessages, supportMessage]);
     }, 1000);
-  };
-  
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -105,43 +94,18 @@ const ChatBoxComponent = () => {
             <ScrollArea className="h-[350px] pr-4">
               <div className="space-y-4">
                 {messages.map((message) => (
-                  <div 
+                  <ChatMessage 
                     key={message.id} 
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div 
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        message.sender === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm">{message.text}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.sender === 'user' 
-                          ? 'text-primary-foreground/70' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        {formatTime(message.timestamp)}
-                      </p>
-                    </div>
-                  </div>
+                    message={message} 
+                    formatTime={formatTime} 
+                  />
                 ))}
               </div>
             </ScrollArea>
           </CardContent>
           
-          <CardFooter className="flex gap-2">
-            <Input 
-              placeholder="Type your message..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              className="flex-1"
-            />
-            <Button onClick={handleSendMessage} size="icon">
-              <Send className="h-4 w-4" />
-            </Button>
+          <CardFooter>
+            <ChatInput onSendMessage={handleSendMessage} />
           </CardFooter>
         </Card>
       </TabsContent>
