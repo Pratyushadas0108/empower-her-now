@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChatBox, Send, Phone, Info } from 'lucide-react';
+import { MessageSquare, Send, Phone, Info } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -31,7 +30,6 @@ const ChatBoxComponent = () => {
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
     
-    // Add user message
     const userMessage: Message = {
       id: messages.length + 1,
       text: inputMessage,
@@ -42,7 +40,6 @@ const ChatBoxComponent = () => {
     setMessages([...messages, userMessage]);
     setInputMessage('');
     
-    // Simulate support response
     setTimeout(() => {
       const supportResponses = [
         "I understand your concern. Let me help you with that.",
@@ -73,7 +70,7 @@ const ChatBoxComponent = () => {
     <Tabs defaultValue="chat" className="w-full max-w-md mx-auto">
       <TabsList className="grid grid-cols-3 mb-4">
         <TabsTrigger value="chat" className="flex items-center gap-1">
-          <ChatBox className="h-4 w-4" />
+          <MessageSquare className="h-4 w-4" />
           <span>Chat</span>
         </TabsTrigger>
         <TabsTrigger value="helplines" className="flex items-center gap-1">
