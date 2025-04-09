@@ -1,12 +1,6 @@
 
 import React from 'react';
-
-interface Message {
-  id: number;
-  text: string;
-  sender: 'user' | 'support';
-  timestamp: Date;
-}
+import { Message } from './types';
 
 interface ChatMessageProps {
   message: Message;
