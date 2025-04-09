@@ -1,17 +1,33 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { MapPin, Share2, User, Users } from 'lucide-react';
+import { MapPin, Share2, User, Users, Plus, X, Send } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface LocationData {
   latitude: number | null;
   longitude: number | null;
   accuracy: number | null;
   timestamp: number | null;
+}
+
+interface Contact {
+  id: string;
+  name: string;
+  phoneNumber: string;
 }
 
 const LocationTracker = () => {
@@ -24,7 +40,29 @@ const LocationTracker = () => {
   });
   const [shareWithContacts, setShareWithContacts] = useState(false);
   const [watchId, setWatchId] = useState<number | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const { toast } = useToast();
+
+  // Load contacts from localStorage on component mount
+  useEffect(() => {
+    const savedContacts = localStorage.getItem('emergencyContacts');
+    if (savedContacts) {
+      try {
+        setContacts(JSON.parse(savedContacts));
+      } catch (e) {
+        console.error('Failed to parse saved contacts', e);
+      }
+    }
+  }, []);
+
+  // Save contacts to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+  }, [contacts]);
 
   const startTracking = () => {
     if (!navigator.geolocation) {
@@ -111,6 +149,76 @@ const LocationTracker = () => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
+  const addContact = () => {
+    if (!newContactName.trim() || !newContactPhone.trim()) {
+      toast({
+        title: "Invalid contact details",
+        description: "Please provide both name and phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic phone number validation
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(newContactPhone.replace(/\D/g, ''))) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newContact: Contact = {
+      id: Date.now().toString(),
+      name: newContactName.trim(),
+      phoneNumber: newContactPhone.trim(),
+    };
+
+    setContacts([...contacts, newContact]);
+    setNewContactName('');
+    setNewContactPhone('');
+    setShowContactDialog(false);
+
+    toast({
+      title: "Contact added",
+      description: `${newContactName} has been added to your emergency contacts.`,
+    });
+  };
+
+  const removeContact = (id: string) => {
+    setContacts(contacts.filter(contact => contact.id !== id));
+    toast({
+      title: "Contact removed",
+      description: "Contact has been removed from your emergency contacts.",
+    });
+  };
+
+  const shareLocation = (contact: Contact) => {
+    if (!locationData.latitude || !locationData.longitude) {
+      toast({
+        title: "Location not available",
+        description: "Please enable location tracking first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create SMS link with location
+    const locationUrl = `https://maps.google.com/maps?q=${locationData.latitude},${locationData.longitude}`;
+    const message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    const smsLink = `sms:${contact.phoneNumber}?body=${encodeURIComponent(message)}`;
+
+    // Open SMS app on mobile or show dialog on desktop
+    window.open(smsLink, '_blank');
+
+    toast({
+      title: "Location shared",
+      description: `Location shared with ${contact.name}.`,
+    });
+  };
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -128,7 +236,7 @@ const LocationTracker = () => {
           Location Tracking
         </CardTitle>
         <CardDescription>
-          Track your location and optionally share it with trusted contacts
+          Track your location and share it with trusted contacts
         </CardDescription>
       </CardHeader>
       
@@ -169,12 +277,66 @@ const LocationTracker = () => {
             </div>
           </div>
         )}
+
+        {/* Emergency Contacts Section */}
+        <div className="border-t pt-4 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium">Emergency Contacts</h4>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 px-2"
+              onClick={() => setShowContactDialog(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Contact
+            </Button>
+          </div>
+
+          {contacts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-3">
+              No emergency contacts added yet
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {contacts.map(contact => (
+                <div key={contact.id} className="flex items-center justify-between p-2 rounded-md bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">{contact.name}</p>
+                    <p className="text-xs text-muted-foreground">{contact.phoneNumber}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => shareLocation(contact)}
+                      disabled={!isTracking}
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Share with {contact.name}</span>
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => removeContact(contact.id)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove {contact.name}</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </CardContent>
       
       <CardFooter className="flex justify-between">
-        <Button variant="outline" disabled={!isTracking}>
-          <Share2 className="h-4 w-4 mr-2" />
-          Send Location
+        <Button variant="outline" onClick={() => setShowContactDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Manage Contacts
         </Button>
         <Button
           variant={isTracking ? "destructive" : "default"}
@@ -183,6 +345,54 @@ const LocationTracker = () => {
           {isTracking ? "Stop Tracking" : "Start Tracking"}
         </Button>
       </CardFooter>
+
+      {/* Add Contact Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Emergency Contact</DialogTitle>
+            <DialogDescription>
+              Add trusted contacts who can receive your location in case of emergency
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                placeholder="Contact name"
+                className="col-span-3"
+                value={newContactName}
+                onChange={(e) => setNewContactName(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="phone" className="text-right">
+                Phone
+              </Label>
+              <Input
+                id="phone"
+                placeholder="10-digit number"
+                className="col-span-3"
+                value={newContactPhone}
+                onChange={(e) => setNewContactPhone(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowContactDialog(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={addContact}>
+              Add Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
