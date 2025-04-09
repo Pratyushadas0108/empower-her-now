@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -20,7 +20,7 @@ const SupportPage = () => {
             Access help, information, and community resources
           </p>
           
-          <Tabs defaultValue="resources" className="max-w-4xl mx-auto">
+          <Tabs defaultValue="helplines" className="max-w-4xl mx-auto">
             <TabsList className="grid grid-cols-4 mb-8">
               <TabsTrigger value="resources" className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
@@ -39,6 +39,87 @@ const SupportPage = () => {
                 <span className="hidden sm:inline">FAQ</span>
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="helplines">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Emergency & Crisis Helplines (India)</CardTitle>
+                  <CardDescription>
+                    Critical emergency and support contact numbers for India
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium text-destructive">Emergency Services</h3>
+                          <p className="text-2xl font-bold mt-1">100</p>
+                        </div>
+                        <Button variant="destructive">Call Now</Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Police emergency number in India for immediate assistance
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-medium">Women's Helpline</h3>
+                        <p className="text-lg font-bold mt-1">1091</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          National helpline for women in distress
+                        </p>
+                        <div className="flex mt-3">
+                          <Button size="sm" className="mr-2">Call</Button>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-medium">Child Helpline</h3>
+                        <p className="text-lg font-bold mt-1">1098</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Emergency support for children
+                        </p>
+                        <Button size="sm" className="mt-3">Call Now</Button>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-medium">Ambulance</h3>
+                        <p className="text-lg font-bold mt-1">102</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Emergency medical services
+                        </p>
+                        <Button size="sm" className="mt-3">Call Now</Button>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-medium">Fire Services</h3>
+                        <p className="text-lg font-bold mt-1">101</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Emergency fire and rescue services
+                        </p>
+                        <Button size="sm" className="mt-3">Call Now</Button>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium">Additional Support Contacts</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <h4 className="font-medium mb-2">National Commission for Women</h4>
+                          <p className="text-sm text-muted-foreground">011-26942369, 26944055</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Domestic Violence Helpline</h4>
+                          <p className="text-sm text-muted-foreground">181</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="resources">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -146,82 +227,6 @@ const SupportPage = () => {
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="helplines">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Emergency & Crisis Helplines</CardTitle>
-                  <CardDescription>
-                    Contact information for immediate assistance and support
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="p-4 border rounded-lg bg-muted/30">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium text-destructive">Emergency Services</h3>
-                          <p className="text-2xl font-bold mt-1">911</p>
-                        </div>
-                        <Button variant="destructive">Call Now</Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        For immediate emergency situations requiring police, medical, or fire department response.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 border rounded-lg">
-                        <h3 className="font-medium">National Domestic Violence Hotline</h3>
-                        <p className="text-lg font-bold mt-1">1-800-799-7233</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          24/7 support for domestic violence victims
-                        </p>
-                        <div className="flex mt-3">
-                          <Button size="sm" className="mr-2">Call</Button>
-                          <Button size="sm" variant="outline">Text START to 88788</Button>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h3 className="font-medium">Crisis Text Line</h3>
-                        <p className="text-lg font-bold mt-1">Text HOME to 741741</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          24/7 text support with trained crisis counselors
-                        </p>
-                        <Button size="sm" className="mt-3">Text Now</Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h3 className="font-medium">RAINN (Sexual Assault)</h3>
-                        <p className="text-lg font-bold mt-1">1-800-656-4673</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          National Sexual Assault Hotline
-                        </p>
-                        <Button size="sm" className="mt-3">Call Now</Button>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <h3 className="font-medium">National Suicide Prevention Lifeline</h3>
-                        <p className="text-lg font-bold mt-1">988</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          24/7 support for those in emotional distress
-                        </p>
-                        <Button size="sm" className="mt-3">Call Now</Button>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium">Local Support Contacts</h3>
-                      <p className="text-sm text-muted-foreground mt-1 mb-3">
-                        Find helplines specific to your location:
-                      </p>
-                      <Button>Find Local Resources</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
             
             <TabsContent value="community">

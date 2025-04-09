@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CircleAlert } from 'lucide-react';
@@ -88,16 +88,16 @@ const Footer = () => {
                 For immediate assistance, call:
               </p>
               <a 
-                href="tel:911" 
+                href="tel:100" 
                 className="block text-safety-700 font-bold mt-1 hover:underline"
               >
-                911
+                100 (Police Emergency)
               </a>
               <a 
-                href="tel:18007997233" 
+                href="tel:1091" 
                 className="block text-sm text-muted-foreground mt-1 hover:text-safety-600"
               >
-                Domestic Violence Hotline: 1-800-799-7233
+                Women's Helpline: 1091
               </a>
             </div>
           </div>
