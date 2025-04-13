@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -200,19 +199,15 @@ const AuthPage = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-red-500">Name</FormLabel>
+                      <FormLabel>Name</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Your Name" 
                           type="text"
-                          {...field} 
-                          onChange={(e) => {
-                            console.log("Name changed:", e.target.value);
-                            field.onChange(e);
-                          }}
+                          {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-500" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -221,7 +216,7 @@ const AuthPage = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-red-500">Email</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="your.email@example.com"
@@ -229,7 +224,7 @@ const AuthPage = () => {
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-500" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
