@@ -1,11 +1,11 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { MapPin, Share2, User, Users, Plus, X, Send } from 'lucide-react';
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 interface LocationData {
@@ -44,7 +43,9 @@ const LocationTracker = () => {
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [showContactDialog, setShowContactDialog] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [shareLocationDialogOpen, setShareLocationDialogOpen] = useState(false);
+  const [currentContactToShare, setCurrentContactToShare] = useState<Contact | null>(null);
+  const [manualPhoneNumber, setManualPhoneNumber] = useState('');
   const { toast } = useToast();
 
   // Load contacts from localStorage on component mount
@@ -219,6 +220,80 @@ const LocationTracker = () => {
     });
   };
 
+  const openShareLocationDialog = (contact?: Contact) => {
+    if (!isTracking) {
+      toast({
+        title: "Location tracking not active",
+        description: "Please start location tracking first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (contact) {
+      setCurrentContactToShare(contact);
+    } else {
+      setCurrentContactToShare(null);
+    }
+    
+    setShareLocationDialogOpen(true);
+  };
+
+  const shareLocationViaSMS = () => {
+    if (!locationData.latitude || !locationData.longitude) {
+      toast({
+        title: "Location not available",
+        description: "Please enable location tracking first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let phoneNumber = "";
+    
+    if (currentContactToShare) {
+      // Use the phone number from the selected contact
+      phoneNumber = currentContactToShare.phoneNumber;
+    } else if (manualPhoneNumber) {
+      // Use the manually entered phone number
+      // Basic phone validation
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(manualPhoneNumber.replace(/\D/g, ''))) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid 10-digit phone number.",
+          variant: "destructive",
+        });
+        return;
+      }
+      phoneNumber = manualPhoneNumber;
+    } else {
+      toast({
+        title: "No phone number provided",
+        description: "Please enter a phone number or select a contact.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create SMS link with location
+    const locationUrl = `https://maps.google.com/maps?q=${locationData.latitude},${locationData.longitude}`;
+    const message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+
+    // Open SMS app
+    window.open(smsLink, '_blank');
+
+    // Close dialog and show toast
+    setShareLocationDialogOpen(false);
+    setManualPhoneNumber('');
+    
+    toast({
+      title: "Location shared via SMS",
+      description: `Your location has been shared via SMS.`,
+    });
+  };
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -276,6 +351,18 @@ const LocationTracker = () => {
               <p>Last Updated: {formatLocationTimestamp(locationData.timestamp)}</p>
             </div>
           </div>
+        )}
+
+        {/* Quick share location button */}
+        {isTracking && (
+          <Button 
+            className="w-full mt-2" 
+            variant="outline"
+            onClick={() => openShareLocationDialog()}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            Share Location via SMS
+          </Button>
         )}
 
         {/* Emergency Contacts Section */}
@@ -389,6 +476,74 @@ const LocationTracker = () => {
             </Button>
             <Button type="button" onClick={addContact}>
               Add Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Location via SMS Dialog */}
+      <Dialog open={shareLocationDialogOpen} onOpenChange={setShareLocationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Location via SMS</DialogTitle>
+            <DialogDescription>
+              {currentContactToShare 
+                ? `Share your current location with ${currentContactToShare.name}`
+                : "Enter a phone number to share your current location"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {currentContactToShare ? (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                <div>
+                  <p className="font-medium">{currentContactToShare.name}</p>
+                  <p className="text-sm text-muted-foreground">{currentContactToShare.phoneNumber}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="sms-phone" className="text-right">
+                  Phone
+                </Label>
+                <Input
+                  id="sms-phone"
+                  placeholder="Enter phone number"
+                  className="col-span-3"
+                  value={manualPhoneNumber}
+                  onChange={(e) => setManualPhoneNumber(e.target.value)}
+                />
+              </div>
+            )}
+            
+            <div className="p-3 rounded-md bg-muted/40">
+              <p className="text-sm font-medium mb-1">Location to share:</p>
+              {locationData.latitude && locationData.longitude ? (
+                <>
+                  <p className="text-xs">Latitude: {locationData.latitude.toFixed(6)}</p>
+                  <p className="text-xs">Longitude: {locationData.longitude.toFixed(6)}</p>
+                  <p className="text-xs mt-1">Maps link will be included in SMS</p>
+                </>
+              ) : (
+                <p className="text-xs text-destructive">Location data not available</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShareLocationDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={shareLocationViaSMS}
+              disabled={!locationData.latitude || !locationData.longitude}
+            >
+              Send SMS
             </Button>
           </DialogFooter>
         </DialogContent>
