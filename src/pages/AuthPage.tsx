@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import useAuth from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -46,6 +47,7 @@ const AuthPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Initialize forms
   const loginForm = useForm<LoginFormValues>({
@@ -64,6 +66,7 @@ const AuthPage = () => {
       password: "",
       confirmPassword: "",
     },
+    mode: "onChange", // Enable validation as user types
   });
 
   // Handle login submission
@@ -71,12 +74,12 @@ const AuthPage = () => {
     // Simulate login - in a real app, this would connect to your auth backend
     console.log("Login submitted:", values);
     
-    // Store auth state in localStorage (for demo purposes)
-    localStorage.setItem("user", JSON.stringify({
+    // Use the login function from useAuth hook
+    login({
       email: values.email,
       isAuthenticated: true,
       name: values.email.split('@')[0], // Just for demo
-    }));
+    });
     
     toast({
       title: "Login successful",
@@ -91,12 +94,12 @@ const AuthPage = () => {
     // Simulate signup - in a real app, this would connect to your auth backend
     console.log("Signup submitted:", values);
     
-    // Store auth state in localStorage (for demo purposes)
-    localStorage.setItem("user", JSON.stringify({
+    // Use the login function from useAuth hook
+    login({
       email: values.email,
       isAuthenticated: true,
       name: values.name,
-    }));
+    });
     
     toast({
       title: "Account created successfully",
@@ -197,11 +200,19 @@ const AuthPage = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel className="text-red-500">Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your Name" {...field} />
+                        <Input 
+                          placeholder="Your Name" 
+                          type="text"
+                          {...field} 
+                          onChange={(e) => {
+                            console.log("Name changed:", e.target.value);
+                            field.onChange(e);
+                          }}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -210,7 +221,7 @@ const AuthPage = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-red-500">Email</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="your.email@example.com"
@@ -218,7 +229,7 @@ const AuthPage = () => {
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />

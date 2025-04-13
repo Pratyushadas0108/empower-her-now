@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
+        console.log("Retrieved user from storage:", parsedUser);
         setUser(parsedUser);
         setIsAuthenticated(true);
       } catch (error) {
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Login function
   const login = (userData: User) => {
+    console.log("Logging in user:", userData);
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userData));
@@ -58,6 +60,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Logout function
   const logout = () => {
+    console.log("Logging out user");
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');
