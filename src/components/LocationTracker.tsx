@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Share2, User, Users, Plus, X, Send } from 'lucide-react';
+import { MapPin, Share2, User, Users, Plus, X, Send, Navigation, Clock, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,10 @@ interface LocationData {
   longitude: number | null;
   accuracy: number | null;
   timestamp: number | null;
+  speed: number | null;
+  altitude: number | null;
+  heading: number | null;
+  address: string | null;
 }
 
 interface Contact {
@@ -36,6 +39,10 @@ const LocationTracker = () => {
     longitude: null,
     accuracy: null,
     timestamp: null,
+    speed: null,
+    altitude: null,
+    heading: null,
+    address: null,
   });
   const [shareWithContacts, setShareWithContacts] = useState(false);
   const [watchId, setWatchId] = useState<number | null>(null);
@@ -46,9 +53,9 @@ const LocationTracker = () => {
   const [shareLocationDialogOpen, setShareLocationDialogOpen] = useState(false);
   const [currentContactToShare, setCurrentContactToShare] = useState<Contact | null>(null);
   const [manualPhoneNumber, setManualPhoneNumber] = useState('');
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const { toast } = useToast();
 
-  // Load contacts from localStorage on component mount
   useEffect(() => {
     const savedContacts = localStorage.getItem('emergencyContacts');
     if (savedContacts) {
@@ -60,10 +67,31 @@ const LocationTracker = () => {
     }
   }, []);
 
-  // Save contacts to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
   }, [contacts]);
+
+  const fetchAddressFromCoordinates = async (latitude: number, longitude: number) => {
+    setIsLoadingAddress(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch address');
+      }
+      
+      const data = await response.json();
+      return data.display_name || 'Address not found';
+    } catch (error) {
+      console.error('Error fetching address:', error);
+      return null;
+    } finally {
+      setIsLoadingAddress(false);
+    }
+  };
 
   const startTracking = () => {
     if (!navigator.geolocation) {
@@ -75,20 +103,31 @@ const LocationTracker = () => {
       return;
     }
 
-    // Request permission and start tracking
     const id = navigator.geolocation.watchPosition(
-      (position) => {
+      async (position) => {
+        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
+        
+        let address = null;
+        try {
+          address = await fetchAddressFromCoordinates(latitude, longitude);
+        } catch (error) {
+          console.error('Error getting address:', error);
+        }
+        
         setLocationData({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
+          latitude,
+          longitude,
+          accuracy,
           timestamp: position.timestamp,
+          speed,
+          altitude,
+          heading,
+          address,
         });
         
         setIsTracking(true);
         
         if (shareWithContacts) {
-          // In a real application, this would periodically share location with trusted contacts
           console.log("Location shared with trusted contacts:", position.coords);
         }
       },
@@ -150,6 +189,19 @@ const LocationTracker = () => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
+  const formatSpeed = (speed: number | null) => {
+    if (speed === null) return 'N/A';
+    return `${speed * 3.6} km/h`;
+  };
+
+  const formatHeading = (heading: number | null) => {
+    if (heading === null) return 'N/A';
+    
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'];
+    const index = Math.round(heading / 45) % 8;
+    return `${heading.toFixed(0)}° (${directions[index]})`;
+  };
+
   const addContact = () => {
     if (!newContactName.trim() || !newContactPhone.trim()) {
       toast({
@@ -160,7 +212,6 @@ const LocationTracker = () => {
       return;
     }
 
-    // Basic phone number validation
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(newContactPhone.replace(/\D/g, ''))) {
       toast({
@@ -206,12 +257,15 @@ const LocationTracker = () => {
       return;
     }
 
-    // Create SMS link with location
     const locationUrl = `https://maps.google.com/maps?q=${locationData.latitude},${locationData.longitude}`;
-    const message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    let message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    
+    if (locationData.address) {
+      message += `\nAddress: ${locationData.address}`;
+    }
+    
     const smsLink = `sms:${contact.phoneNumber}?body=${encodeURIComponent(message)}`;
 
-    // Open SMS app on mobile or show dialog on desktop
     window.open(smsLink, '_blank');
 
     toast({
@@ -252,11 +306,8 @@ const LocationTracker = () => {
     let phoneNumber = "";
     
     if (currentContactToShare) {
-      // Use the phone number from the selected contact
       phoneNumber = currentContactToShare.phoneNumber;
     } else if (manualPhoneNumber) {
-      // Use the manually entered phone number
-      // Basic phone validation
       const phoneRegex = /^[0-9]{10}$/;
       if (!phoneRegex.test(manualPhoneNumber.replace(/\D/g, ''))) {
         toast({
@@ -276,15 +327,17 @@ const LocationTracker = () => {
       return;
     }
 
-    // Create SMS link with location
     const locationUrl = `https://maps.google.com/maps?q=${locationData.latitude},${locationData.longitude}`;
-    const message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    let message = `Emergency: I'm sharing my current location with you: ${locationUrl}`;
+    
+    if (locationData.address) {
+      message += `\nAddress: ${locationData.address}`;
+    }
+    
     const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
 
-    // Open SMS app
     window.open(smsLink, '_blank');
 
-    // Close dialog and show toast
     setShareLocationDialogOpen(false);
     setManualPhoneNumber('');
     
@@ -294,7 +347,6 @@ const LocationTracker = () => {
     });
   };
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (watchId !== null && navigator.geolocation) {
@@ -342,30 +394,67 @@ const LocationTracker = () => {
         </div>
         
         {isTracking && locationData.latitude && locationData.longitude && (
-          <div className="mt-4 p-4 rounded-lg bg-muted/50">
-            <h4 className="text-sm font-medium mb-2">Current Location Data</h4>
-            <div className="space-y-1 text-xs">
-              <p>Latitude: {locationData.latitude.toFixed(6)}</p>
-              <p>Longitude: {locationData.longitude.toFixed(6)}</p>
-              <p>Accuracy: {locationData.accuracy ? `±${locationData.accuracy.toFixed(0)}m` : 'N/A'}</p>
-              <p>Last Updated: {formatLocationTimestamp(locationData.timestamp)}</p>
+          <div className="mt-4 p-4 rounded-lg bg-muted/50 space-y-4">
+            <h4 className="text-sm font-medium mb-2">Current Location Information</h4>
+            
+            {locationData.address && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Address
+                </p>
+                <p className="text-xs bg-background/60 p-2 rounded">{locationData.address}</p>
+              </div>
+            )}
+            
+            {isLoadingAddress && (
+              <p className="text-xs text-muted-foreground">Finding address...</p>
+            )}
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Coordinates
+                </p>
+                <p className="text-xs">Lat: {locationData.latitude.toFixed(6)}</p>
+                <p className="text-xs">Long: {locationData.longitude.toFixed(6)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs font-medium flex items-center gap-1">
+                  <Info className="h-3 w-3" /> Accuracy
+                </p>
+                <p className="text-xs">{locationData.accuracy ? `±${locationData.accuracy.toFixed(0)}m` : 'N/A'}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs font-medium flex items-center gap-1">
+                  <Navigation className="h-3 w-3" /> Movement
+                </p>
+                <p className="text-xs">Speed: {formatSpeed(locationData.speed)}</p>
+                <p className="text-xs">Direction: {formatHeading(locationData.heading)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs font-medium flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Timestamp
+                </p>
+                <p className="text-xs">{formatLocationTimestamp(locationData.timestamp)}</p>
+              </div>
+            </div>
+            
+            <div className="pt-2">
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => openShareLocationDialog()}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Location via SMS
+              </Button>
             </div>
           </div>
         )}
 
-        {/* Quick share location button */}
-        {isTracking && (
-          <Button 
-            className="w-full mt-2" 
-            variant="outline"
-            onClick={() => openShareLocationDialog()}
-          >
-            <Share2 className="h-4 w-4 mr-2" />
-            Share Location via SMS
-          </Button>
-        )}
-
-        {/* Emergency Contacts Section */}
         <div className="border-t pt-4 mt-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium">Emergency Contacts</h4>
@@ -433,7 +522,6 @@ const LocationTracker = () => {
         </Button>
       </CardFooter>
 
-      {/* Add Contact Dialog */}
       <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -481,7 +569,6 @@ const LocationTracker = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Share Location via SMS Dialog */}
       <Dialog open={shareLocationDialogOpen} onOpenChange={setShareLocationDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -519,11 +606,15 @@ const LocationTracker = () => {
             <div className="p-3 rounded-md bg-muted/40">
               <p className="text-sm font-medium mb-1">Location to share:</p>
               {locationData.latitude && locationData.longitude ? (
-                <>
+                <div className="space-y-1">
+                  {locationData.address && (
+                    <p className="text-xs">{locationData.address}</p>
+                  )}
                   <p className="text-xs">Latitude: {locationData.latitude.toFixed(6)}</p>
                   <p className="text-xs">Longitude: {locationData.longitude.toFixed(6)}</p>
+                  <p className="text-xs">Accuracy: {locationData.accuracy ? `±${locationData.accuracy.toFixed(0)}m` : 'N/A'}</p>
                   <p className="text-xs mt-1">Maps link will be included in SMS</p>
-                </>
+                </div>
               ) : (
                 <p className="text-xs text-destructive">Location data not available</p>
               )}
