@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn, Users } from 'lucide-react';
+import useAuth from '@/hooks/useAuth';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, user } = useAuth();
   
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -39,9 +41,25 @@ const Header = () => {
           </Link>
           <Link to="/chatbox">
             <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary">
-              Chat Help
+              AI Chat Help
             </Button>
           </Link>
+          
+          {isAuthenticated ? (
+            <Link to="/community-chat">
+              <Button variant="outline" className="border-safety-600 text-safety-600 hover:bg-safety-600/10 hover:text-safety-600">
+                <Users className="mr-2 h-4 w-4" />
+                Community Chat
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/login">
+              <Button variant="default" className="bg-safety-600 hover:bg-safety-700">
+                <LogIn className="mr-2 h-4 w-4" />
+                Login
+              </Button>
+            </Link>
+          )}
         </nav>
         
         {/* Mobile Menu Button */}
@@ -94,9 +112,31 @@ const Header = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary">
-                Chat Help
+                AI Chat Help
               </Button>
             </Link>
+            
+            {isAuthenticated ? (
+              <Link 
+                to="/community-chat"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Button variant="outline" className="w-full border-safety-600 text-safety-600 hover:bg-safety-600/10 hover:text-safety-600">
+                  <Users className="mr-2 h-4 w-4" />
+                  Community Chat
+                </Button>
+              </Link>
+            ) : (
+              <Link 
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Button variant="default" className="w-full bg-safety-600 hover:bg-safety-700">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
       )}
