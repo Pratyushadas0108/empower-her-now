@@ -49,6 +49,24 @@ const SOSButton = () => {
     });
   };
 
+  const callPolice = () => {
+    try {
+      window.location.href = 'tel:100';
+      toast({
+        title: "Calling Police Emergency",
+        description: "Connecting you to police emergency services (100).",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Failed to initiate call:", error);
+      toast({
+        title: "Call Failed",
+        description: "Could not connect the call. Please dial 100 manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const simulateSendingSOSAlert = () => {
     // In a real application, this would send alerts to emergency contacts
     // and potentially to local authorities or a monitoring service
@@ -120,6 +138,14 @@ const SOSButton = () => {
                   </p>
                 </div>
               </div>
+
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium p-4 flex items-center justify-center gap-2"
+                onClick={callPolice}
+              >
+                <Phone className="h-5 w-5" />
+                Call Police Emergency (100)
+              </Button>
             </div>
           )}
           

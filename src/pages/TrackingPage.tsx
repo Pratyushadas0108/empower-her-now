@@ -2,6 +2,7 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import LocationTracker from '@/components/LocationTracker';
+import SOSButton from '@/components/SOSButton';
 
 const TrackingPage = () => {
   return (
@@ -19,7 +20,16 @@ const TrackingPage = () => {
             <LocationTracker />
           </div>
           
-          <div className="mt-12 max-w-2xl mx-auto">
+          <div className="flex justify-center my-8">
+            <div className="text-center">
+              <SOSButton />
+              <p className="mt-4 text-sm font-medium text-destructive">
+                Emergency SOS - Call Police (100)
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-8 max-w-2xl mx-auto">
             <h2 className="text-2xl font-medium mb-4">Location Tracking Privacy</h2>
             <div className="space-y-4">
               <p className="text-muted-foreground">
