@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -54,6 +55,7 @@ const LocationTracker = () => {
   const [currentContactToShare, setCurrentContactToShare] = useState<Contact | null>(null);
   const [manualPhoneNumber, setManualPhoneNumber] = useState('');
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,12 +73,18 @@ const LocationTracker = () => {
     localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
   }, [contacts]);
 
-  const fetchAddressFromCoordinates = async (latitude: number, longitude: number) => {
+  const fetchAddressFromCoordinates = useCallback(async (latitude: number, longitude: number) => {
     setIsLoadingAddress(true);
     try {
+      // Use a more reliable geocoding API
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
+        { 
+          headers: { 
+            'Accept-Language': 'en',
+            'User-Agent': 'SafetyApp/1.0' // Adding a user agent as per Nominatim usage policy
+          }
+        }
       );
       
       if (!response.ok) {
@@ -91,9 +99,11 @@ const LocationTracker = () => {
     } finally {
       setIsLoadingAddress(false);
     }
-  };
+  }, []);
 
-  const startTracking = () => {
+  const startTracking = useCallback(() => {
+    setLocationError(null);
+    
     if (!navigator.geolocation) {
       toast({
         title: "Geolocation not supported",
@@ -103,51 +113,78 @@ const LocationTracker = () => {
       return;
     }
 
+    // First get a single position to show quickly
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        console.log("Initial position:", position);
+        updateLocationData(position);
+      },
+      (error) => handleLocationError(error),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+
+    // Then set up continuous watching with high accuracy
     const id = navigator.geolocation.watchPosition(
       async (position) => {
-        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
-        
-        let address = null;
-        try {
-          address = await fetchAddressFromCoordinates(latitude, longitude);
-        } catch (error) {
-          console.error('Error getting address:', error);
-        }
-        
-        setLocationData({
-          latitude,
-          longitude,
-          accuracy,
-          timestamp: position.timestamp,
-          speed,
-          altitude,
-          heading,
-          address,
-        });
-        
-        setIsTracking(true);
-        
-        if (shareWithContacts) {
-          console.log("Location shared with trusted contacts:", position.coords);
-        }
+        console.log("Watch position update:", position);
+        updateLocationData(position);
       },
-      (error) => {
-        console.error("Error getting location:", error);
-        toast({
-          title: "Location error",
-          description: getLocationErrorMessage(error),
-          variant: "destructive",
-        });
-        setIsTracking(false);
-      },
+      (error) => handleLocationError(error),
       {
         enableHighAccuracy: true,
-        maximumAge: 30000,
-        timeout: 27000,
+        maximumAge: 10000, // Accept positions that are up to 10 seconds old
+        timeout: 15000,    // Wait up to 15 seconds for a position
       }
     );
     
     setWatchId(id);
+    setIsTracking(true);
+    
+    toast({
+      title: "Location tracking started",
+      description: "Your location is now being tracked.",
+    });
+  }, [toast, fetchAddressFromCoordinates]);
+
+  const updateLocationData = async (position: GeolocationPosition) => {
+    const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
+    
+    let address = null;
+    try {
+      address = await fetchAddressFromCoordinates(latitude, longitude);
+    } catch (error) {
+      console.error('Error getting address:', error);
+    }
+    
+    setLocationData({
+      latitude,
+      longitude,
+      accuracy,
+      timestamp: position.timestamp,
+      speed,
+      altitude,
+      heading,
+      address,
+    });
+    
+    if (shareWithContacts) {
+      console.log("Location shared with trusted contacts:", position.coords);
+      // Implement actual sharing logic here if needed
+    }
+  };
+
+  const handleLocationError = (error: GeolocationPositionError) => {
+    const errorMessage = getLocationErrorMessage(error);
+    setLocationError(errorMessage);
+    console.error("Location error:", error);
+    
+    toast({
+      title: "Location error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+    
+    setIsTracking(false);
   };
 
   const stopTracking = () => {
@@ -176,11 +213,11 @@ const LocationTracker = () => {
       case error.PERMISSION_DENIED:
         return "Location permission denied. Please enable location services for this site.";
       case error.POSITION_UNAVAILABLE:
-        return "Location information is unavailable.";
+        return "Location information is unavailable. Please check your device settings.";
       case error.TIMEOUT:
-        return "The request to get your location timed out.";
+        return "The request to get your location timed out. Please try again.";
       default:
-        return "An unknown error occurred.";
+        return `An unknown error occurred (${error.message || 'No details available'}).`;
     }
   };
 
@@ -190,8 +227,9 @@ const LocationTracker = () => {
   };
 
   const formatSpeed = (speed: number | null) => {
-    if (speed === null) return 'N/A';
-    return `${speed * 3.6} km/h`;
+    if (speed === null || speed === 0) return 'Not moving';
+    const speedKmh = speed * 3.6; // Convert m/s to km/h
+    return `${speedKmh.toFixed(1)} km/h`;
   };
 
   const formatHeading = (heading: number | null) => {
@@ -392,6 +430,24 @@ const LocationTracker = () => {
             disabled={!isTracking}
           />
         </div>
+        
+        {locationError && (
+          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+            <p className="font-medium">Location Error:</p>
+            <p>{locationError}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 text-xs h-7" 
+              onClick={() => {
+                setLocationError(null);
+                startTracking();
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
         
         {isTracking && locationData.latitude && locationData.longitude && (
           <div className="mt-4 p-4 rounded-lg bg-muted/50 space-y-4">
